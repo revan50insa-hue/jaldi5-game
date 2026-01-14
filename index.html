@@ -117,7 +117,8 @@ function createGroup(){
     creator: playerId,
     players:{},
     gameStarted:false,
-    linesClaimed:{} // to track first line completion
+    linesClaimed:{},
+    winner: null
   }, function(error){
     if(!error){
       joinFirebaseGroup(groupId);
@@ -194,6 +195,13 @@ function joinFirebaseGroup(groupId){
       html+="</ul>";
       document.getElementById('lineNotifications').innerHTML = html;
     }
+
+    // ---------- SHOW WINNER ----------
+    if(data.winner){
+      var winnerName = (data.players && data.players[data.winner] && data.players[data.winner].name) || data.winner;
+      document.getElementById('lineNotifications').innerHTML += "<h2>🏆 "+winnerName+" WINS THE GAME!</h2>";
+      document.getElementById('showNumberBtn').disabled = true;
+    }
   });
 }
 
@@ -260,7 +268,7 @@ function highlightNumber(num){
   checkLineCompletion();
 }
 
-// ---------- Check Line Completion ----------
+// ---------- Check Line Completion & Winner ----------
 function checkLineCompletion(){
   if(!myTicket || !currentGroupId) return;
 
@@ -280,9 +288,19 @@ function checkLineCompletion(){
       var ref = db.ref('groups/'+currentGroupId+'/linesClaimed/'+line);
       ref.once('value', snap=>{
         if(!snap.val()){ // if line not yet claimed
-          ref.set(playerId); // this triggers all players to update
+          ref.set(playerId); // triggers notification for all
         }
       });
+    });
+  }
+
+  // ---------- CHECK WINNER ----------
+  if(completed.length === 3){ // all 3 lines complete
+    var winnerRef = db.ref('groups/'+currentGroupId+'/winner');
+    winnerRef.once('value', snap=>{
+      if(!snap.val()){ // winner not yet set
+        winnerRef.set(playerId); // first player to complete 3 lines becomes winner
+      }
     });
   }
 }
