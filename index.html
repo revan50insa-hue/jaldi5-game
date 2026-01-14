@@ -84,7 +84,7 @@ var firebaseConfig = {
   projectId: "tffhacksv4",
   storageBucket: "tffhacksv4.firebasestorage.app",
   messagingSenderId: "641197191429",
-  appId: "1:641197191429:web:7b63ca534dd41e19d8476c"
+  appId: "1:641197191429:web:7b63ca534dd41e19d8476"
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
@@ -96,6 +96,7 @@ var isCreator = false;
 var gameNumbers = [];
 var currentIndex = 0;
 var myTicket = [];
+var drawnNumbers = []; // Keep track of all drawn numbers
 
 // ---------- Create Group ----------
 function createGroup(){
@@ -202,6 +203,9 @@ function displayMyTicket(){
   }
   html+="</table></div>";
   document.getElementById('myTicketContainer').innerHTML = html;
+
+  // Highlight already drawn numbers
+  drawnNumbers.forEach(n => highlightNumber(n));
 }
 
 // ---------- Show Next Number ----------
@@ -213,10 +217,20 @@ function showNextNumber(){
 
 // ---------- Highlight Number ----------
 function highlightNumber(num){
+  // Keep track of all numbers
+  if(drawnNumbers.indexOf(num) === -1){
+    drawnNumbers.push(num);
+  }
+
   var table = document.getElementById('myTicketTable');
   if(!table) return;
-  var cells = table.querySelectorAll('td[data-number="'+num+'"]');
-  cells.forEach(cell => cell.classList.add('marked'));
+
+  // Highlight all drawn numbers on your ticket
+  drawnNumbers.forEach(n => {
+    var cells = table.querySelectorAll('td[data-number="'+n+'"]');
+    cells.forEach(cell => cell.classList.add('marked'));
+  });
+
   document.getElementById('currentNumber').innerText = "Number: "+num;
 }
 
