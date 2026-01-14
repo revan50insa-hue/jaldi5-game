@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Jaldi 5</title>
+<title>Jaldi 5 Multiplayer</title>
 <style>
   body { font-family: Arial; background:#111; color:#fff; text-align:center; padding:40px; }
   button { padding:12px 20px; margin:10px; font-size:16px; border:none; border-radius:6px; cursor:pointer; }
   input { padding:10px; font-size:16px; border-radius:6px; border:none; width:200px; margin:5px; }
-  #myid { margin-top:20px; font-size:20px; }
-  #groupInfo { margin-top:20px; font-size:18px; }
+  #myid, #groupInfo, #gameSheet { margin-top:20px; font-size:18px; }
+  .numberCell { display:inline-block; width:40px; height:40px; line-height:40px; margin:3px; background:#222; color:#fff; border-radius:4px; }
 </style>
 
-<!-- Firebase SDKs for browser -->
+<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-  // Firebase config (replace with yours)
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCeg-D---KoJEtVcBN5iwFs9WDHBRIgZjA",
     authDomain: "tffhacksv4.firebaseapp.com",
@@ -28,25 +28,34 @@
     measurementId: "G-X394XS64RN"
   };
 
-  // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
 </script>
-
 </head>
 <body>
 
-<h2>Jaldi 5</h2>
+<h2>Jaldi 5 Multiplayer</h2>
 <div id="myid">Loading ID...</div>
 
+<!-- Create Group -->
 <button id="createGroupBtn">Create Group</button>
 
+<!-- Join Group -->
 <div id="groupSection" style="margin-top:30px;">
   <input type="text" id="joinGroupId" placeholder="Enter Group ID to join">
   <button id="joinGroupBtn">Join Group</button>
 </div>
 
 <div id="groupInfo"></div>
+
+<!-- Start Game (only creator) -->
+<button id="startGameBtn" style="display:none;">Start Game</button>
+
+<!-- Show Number -->
+<button id="showNumberBtn" style="display:none;">Show Number</button>
+
+<!-- Player Sheet -->
+<div id="gameSheet"></div>
 
 <script>
   // 1️⃣ Generate Player ID
@@ -57,34 +66,87 @@
   }
   document.getElementById("myid").innerText = "My ID: " + myId;
 
+  let currentGroupId = "";
+  let isCreator = false;
+  let myNumbers = [];
+
   // 2️⃣ Create Group
   document.getElementById("createGroupBtn").addEventListener("click", function(){
-    let groupId = "GROUP_" + Math.floor(1000 + Math.random()*9000);
-    database.ref("groups/" + groupId + "/players/" + myId).set({
+    currentGroupId = "GROUP_" + Math.floor(1000 + Math.random()*9000);
+    database.ref("groups/" + currentGroupId + "/players/" + myId).set({
       joinedAt: Date.now()
     });
-    document.getElementById("groupInfo").innerText = "Group created! Share this ID with friends: " + groupId;
+    document.getElementById("groupInfo").innerText = "Group created! Share this ID: " + currentGroupId;
+    isCreator = true;
+    document.getElementById("startGameBtn").style.display = "inline-block";
   });
 
   // 3️⃣ Join Group
   document.getElementById("joinGroupBtn").addEventListener("click", function(){
     let groupId = document.getElementById("joinGroupId").value.trim();
-    if(groupId.length === 0){
-      alert("Enter a valid Group ID");
-      return;
-    }
-    // Save player to Firebase group
-    database.ref("groups/" + groupId + "/players/" + myId).set({
-      joinedAt: Date.now()
-    }, function(error){
-      if(error){
-        alert("Failed to join group");
-      } else {
-        document.getElementById("groupInfo").innerText = "Joined Group: " + groupId;
-      }
+    if(groupId.length===0){ alert("Enter a valid Group ID"); return; }
+    currentGroupId = groupId;
+    database.ref("groups/" + groupId + "/players/" + myId).set({joinedAt: Date.now()}, function(err){
+      if(err){ alert("Failed to join"); }
+      else { document.getElementById("groupInfo").innerText = "Joined Group: " + groupId; }
     });
   });
-</script>
 
+  // 4️⃣ Start Game (only creator)
+  document.getElementById("startGameBtn").addEventListener("click", function(){
+    if(!currentGroupId) return;
+    // Generate random numbers 1-100 for each player
+    database.ref("groups/" + currentGroupId + "/players").once("value", snapshot=>{
+      snapshot.forEach(playerSnap=>{
+        let numbers = [];
+        while(numbers.length<5){ // give each player 5 random numbers
+          let num = Math.floor(Math.random()*100)+1;
+          if(!numbers.includes(num)) numbers.push(num);
+        }
+        database.ref("groups/" + currentGroupId + "/players/" + playerSnap.key + "/numbers").set(numbers);
+      });
+    });
+    document.getElementById("showNumberBtn").style.display = "inline-block";
+    alert("Game started!");
+  });
+
+  // 5️⃣ Listen for numbers to display player's sheet
+  function listenNumbers(){
+    if(!currentGroupId) return;
+    database.ref("groups/" + currentGroupId + "/players/" + myId + "/numbers").on("value", snap=>{
+      if(snap.exists()){
+        myNumbers = snap.val();
+        displayNumbers();
+      }
+    });
+  }
+
+  function displayNumbers(){
+    let html = "";
+    myNumbers.forEach(num=>{
+      html += `<div class='numberCell'>${num}</div>`;
+    });
+    document.getElementById("gameSheet").innerHTML = html;
+  }
+
+  listenNumbers();
+
+  // 6️⃣ Show Number (for creator)
+  document.getElementById("showNumberBtn").addEventListener("click", function(){
+    let nextNumber = myNumbers.shift();
+    database.ref("groups/" + currentGroupId + "/currentNumber").set(nextNumber);
+    displayNumbers();
+  });
+
+  // 7️⃣ Listen for the number shown
+  database.ref().child("groups").on("child_changed", snap=>{
+    if(!currentGroupId) return;
+    let groupSnap = snap.val();
+    if(groupSnap.currentNumber){
+      alert("Number shown: " + groupSnap.currentNumber);
+    }
+  });
+
+</script>
 </body>
 </html>
