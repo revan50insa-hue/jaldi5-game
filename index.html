@@ -5,21 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jaldi 5</title>
 
-<!-- Firebase v8 SDK from CDN -->
+<!-- Firebase v8 SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;height:100vh;}
-.header{text-align:center;padding:20px;font-size:28px;font-weight:bold;background:#0f3460;}
-.container{display:flex;flex-direction:column;align-items:center;margin-top:40px;}
-.card{width:85%;background:#222831;border-radius:15px;padding:20px;margin:15px;box-shadow:0 10px 20px rgba(0,0,0,0.5);}
-.card h2{margin-top:0;}
-input{width:90%;padding:12px;margin-top:10px;border-radius:8px;border:none;font-size:16px;}
-button{margin-top:15px;padding:12px 25px;border:none;border-radius:8px;background:#00adb5;color:white;font-size:16px;cursor:pointer;}
-button:hover{background:#028a90;}
-.hidden{display:none;}
-.lobby{text-align:center;padding:30px;}
+body {margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;height:100vh;}
+.header {text-align:center;padding:20px;font-size:28px;font-weight:bold;background:#0f3460;}
+.container {display:flex;flex-direction:column;align-items:center;margin-top:40px;}
+.card {width:85%;background:#222831;border-radius:15px;padding:20px;margin:15px;box-shadow:0 10px 20px rgba(0,0,0,0.5);}
+.card h2 {margin-top:0;}
+input {width:90%;padding:12px;margin-top:10px;border-radius:8px;border:none;font-size:16px;}
+button {margin-top:15px;padding:12px 25px;border:none;border-radius:8px;background:#00adb5;color:white;font-size:16px;cursor:pointer;}
+button:hover {background:#028a90;}
+.hidden {display:none;}
+.lobby {text-align:center;padding:30px;}
+.lobby #playerList {margin-top:20px;}
 </style>
 </head>
 <body>
@@ -49,14 +50,14 @@ button:hover{background:#028a90;}
 <div id='lobbyPage' class='hidden'>
 <div class='header'>🎮 Game Lobby</div>
 <div class='lobby'>
-<h2 id='lobbyTitle'></h2>
+<h2>Group ID: <span id='groupIdText'></span></h2>
 <div id='playerList'></div>
 <button onclick='goHome()'>Back to Home</button>
 </div>
 </div>
 
 <script>
-// -------- Firebase Setup (v8) --------
+// ---------- Firebase Setup ----------
 var firebaseConfig = {
   apiKey: "YOUR_WEB_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -69,61 +70,50 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
-// -------- Player ID --------
+// ---------- Player ID ----------
 var playerId = 'PLR_'+Math.floor(Math.random()*1000000);
 console.log("My Player ID:", playerId);
 
-// -------- Functions --------
+// ---------- Functions ----------
 function createGroup() {
   var groupId = 'GRP-'+Math.floor(100000 + Math.random()*900000);
   console.log("Creating group:", groupId);
-  alert("Creating group: "+groupId); // debug alert
 
   db.ref('groups/'+groupId).set({
     creator: playerId,
     players: {}
   }, function(error) {
-    if(error) {
-      console.log("Error creating group:", error);
+    if(error){
       alert("Failed to create group!");
     } else {
-      console.log("Group created:", groupId);
-      alert("Group created: "+groupId); // debug alert
-      joinFirebaseGroup(groupId);
+      joinFirebaseGroup(groupId); // go to lobby automatically
     }
   });
 }
 
 function joinGroup() {
   var groupId = document.getElementById('groupInput').value.trim();
-  if(groupId === '') { alert("Enter Group ID"); return; }
+  if(groupId===''){ alert("Enter Group ID"); return; }
   joinFirebaseGroup(groupId);
 }
 
 function joinFirebaseGroup(groupId) {
-  console.log("Joining group:", groupId);
-  db.ref('groups/'+groupId+'/players/'+playerId).set(true, function(error) {
-    if(error) {
-      alert("Failed to join group!");
-    } else {
-      openLobby('Group: '+groupId);
-    }
-  });
+  // Show lobby page
+  document.getElementById('homePage').classList.add('hidden');
+  document.getElementById('lobbyPage').classList.remove('hidden');
+  document.getElementById('groupIdText').innerText = groupId;
 
-  // Listen to live players
+  // Add player to Firebase
+  db.ref('groups/'+groupId+'/players/'+playerId).set(true);
+
+  // Listen for live player list
   db.ref('groups/'+groupId+'/players').on('value', function(snapshot){
     var players = snapshot.val();
     var html = "<h3>Players:</h3><ul>";
-    for(var p in players) { html += "<li>"+p+"</li>"; }
+    for(var p in players){ html += "<li>"+p+"</li>"; }
     html += "</ul>";
     document.getElementById('playerList').innerHTML = html;
   });
-}
-
-function openLobby(text) {
-  document.getElementById('homePage').classList.add('hidden');
-  document.getElementById('lobbyPage').classList.remove('hidden');
-  document.getElementById('lobbyTitle').innerText = text;
 }
 
 function goHome() {
