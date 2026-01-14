@@ -59,7 +59,7 @@ button:hover{background:#028a90;}
 <div class='lobby'>
 <h2>Group ID: <span id='groupIdText'></span></h2>
 
-<!-- Change Name (Always visible in lobby) -->
+<!-- Change Name -->
 <div id="nameDiv">
 <input id="nameInput" placeholder="Enter your name">
 <button onclick="updateName()">Set Name</button>
@@ -117,7 +117,7 @@ function createGroup(){
     creator: playerId,
     players:{},
     gameStarted:false,
-    linesClaimed:{} // <-- NEW: to track first line completion
+    linesClaimed:{} // to track first line completion
   }, function(error){
     if(!error){
       joinFirebaseGroup(groupId);
@@ -181,12 +181,13 @@ function joinFirebaseGroup(groupId){
 
     if(data.currentNumber) highlightNumber(data.currentNumber);
 
-    // Display line completion notifications for first player only
+    // ---------- SHOW LINE COMPLETION TO ALL ----------
     if(data.linesClaimed){
       var html = "<h3>Line Completed:</h3><ul>";
       for(var line in data.linesClaimed){
         if(data.linesClaimed[line]){
-          var pname = (data.players && data.players[data.linesClaimed[line]] && data.players[data.linesClaimed[line]].name) || data.linesClaimed[line];
+          var pid = data.linesClaimed[line];
+          var pname = (data.players && data.players[pid] && data.players[pid].name) || pid;
           html += "<li>"+pname+" completed "+line+" line</li>";
         }
       }
@@ -279,7 +280,7 @@ function checkLineCompletion(){
       var ref = db.ref('groups/'+currentGroupId+'/linesClaimed/'+line);
       ref.once('value', snap=>{
         if(!snap.val()){ // if line not yet claimed
-          ref.set(playerId);
+          ref.set(playerId); // this triggers all players to update
         }
       });
     });
