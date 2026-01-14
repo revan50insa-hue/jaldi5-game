@@ -124,26 +124,32 @@ function joinGroup(){
 
 // ---------- Join Firebase Group ----------
 function joinFirebaseGroup(groupId){
+  currentGroupId = groupId; // store
   document.getElementById('homePage').classList.add('hidden');
   document.getElementById('lobbyPage').classList.remove('hidden');
   document.getElementById('groupIdText').innerText = groupId;
 
   db.ref('groups/'+groupId+'/players/'+playerId).set(true);
 
-  // Listen player list updates
+  // Player list updates
   db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
     var players = snapshot.val()||{};
     var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
     for(var p in players){ html+="<li>"+p+"</li>"; }
     html+="</ul>";
     document.getElementById('playerList').innerHTML = html;
-
     if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
   });
 
-  // Listen if the game started
-  db.ref('groups/'+groupId+'/gameStarted').on('value', snapshot=>{
-    if(snapshot.val()){ openGamePage(); }
+  // Full group listener (tickets + game start)
+  db.ref('groups/'+groupId).on('value', snapshot=>{
+    var data = snapshot.val();
+    if(!data) return;
+
+    // Switch to game page if started
+    if(data.gameStarted && data.tickets){
+      openGamePage();
+    }
   });
 }
 
@@ -158,7 +164,7 @@ function startGame(){
     for(var p in players){
       tickets[p] = generateTicket();
     }
-    // Save tickets and mark game started
+    // Save tickets + game started
     db.ref('groups/'+currentGroupId).update({
       tickets: tickets,
       gameStarted: true
@@ -176,10 +182,12 @@ function openGamePage(){
 
   displayTickets();
 
+  // Update tickets in real-time
   db.ref('groups/'+currentGroupId+'/tickets').on('value', snapshot=>{
     displayTickets(snapshot.val());
   });
 
+  // Update current number in real-time
   db.ref('groups/'+currentGroupId+'/currentNumber').on('value', snapshot=>{
     var num = snapshot.val();
     if(num){ document.getElementById('currentNumber').innerText = "Number: "+num; }
