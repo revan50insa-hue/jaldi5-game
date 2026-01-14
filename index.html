@@ -95,34 +95,44 @@ var isCreator = false;
 var gameNumbers = [];
 var currentIndex = 0;
 
-// ---------- Functions ----------
+// ---------- Create Group ----------
 function createGroup(){
   var groupId = 'GRP-'+Math.floor(100000 + Math.random()*900000);
   isCreator = true;
+  currentGroupId = groupId;
+
   db.ref('groups/'+groupId).set({
     creator: playerId,
     players:{}
   }, function(error){
-    if(!error){ joinFirebaseGroup(groupId); }
+    if(!error){
+      joinFirebaseGroup(groupId);
+    } else {
+      alert("Failed to create group!");
+    }
   });
 }
 
+// ---------- Join Group ----------
 function joinGroup(){
   var groupId = document.getElementById('groupInput').value.trim();
   if(groupId===''){ alert("Enter Group ID"); return; }
   isCreator = false;
+  currentGroupId = groupId;
   joinFirebaseGroup(groupId);
 }
 
+// ---------- Join Firebase Group ----------
 function joinFirebaseGroup(groupId){
-  currentGroupId = groupId;
+  // Show lobby page
   document.getElementById('homePage').classList.add('hidden');
   document.getElementById('lobbyPage').classList.remove('hidden');
   document.getElementById('groupIdText').innerText = groupId;
 
+  // Add player to Firebase
   db.ref('groups/'+groupId+'/players/'+playerId).set(true);
 
-  // Listen to players
+  // Listen for players
   db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
     var players = snapshot.val()||{};
     var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
@@ -130,7 +140,7 @@ function joinFirebaseGroup(groupId){
     html+="</ul>";
     document.getElementById('playerList').innerHTML = html;
 
-    // Show start button for creator
+    // Show start button only for creator
     if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
   });
 }
@@ -195,7 +205,7 @@ function showNextNumber(){
   db.ref('groups/'+currentGroupId+'/currentNumber').set(num);
 }
 
-// ---------- Utility Functions ----------
+// ---------- Utilities ----------
 function shuffleArray(array){
   for(let i=array.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
