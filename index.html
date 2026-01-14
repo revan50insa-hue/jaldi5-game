@@ -27,6 +27,7 @@ button:hover{background:#028a90;}
 .ticket td.marked{background:#00ff00;color:#000;font-weight:bold;}
 #showNumberBtn{margin-top:20px;background:#f44336;}
 #currentNumber{margin-top:20px;font-size:20px;font-weight:bold;}
+#lineNotifications{margin-top:20px;}
 </style>
 </head>
 <body>
@@ -57,6 +58,11 @@ button:hover{background:#028a90;}
 <div class='header'>🎮 Game Lobby</div>
 <div class='lobby'>
 <h2>Group ID: <span id='groupIdText'></span></h2>
+
+<!-- Change Name -->
+<input id="nameInput" placeholder="Enter your name">
+<button onclick="updateName()">Set Name</button>
+
 <div id='playerList'></div>
 <div id='startGameDiv' class='hidden'>
 <button id='startGameBtn' onclick='startGame()'>Start Game</button>
@@ -72,6 +78,7 @@ button:hover{background:#028a90;}
 <div id='myTicketContainer'></div>
 <button id='showNumberBtn' class='hidden' onclick='showNextNumber()'>Show Number</button>
 <div id='currentNumber'></div>
+<div id="lineNotifications"></div>
 </div>
 </div>
 
@@ -84,7 +91,7 @@ var firebaseConfig = {
   projectId: "tffhacksv4",
   storageBucket: "tffhacksv4.firebasestorage.app",
   messagingSenderId: "641197191429",
-  appId: "1:641197191429:web:7b63ca534dd41e19d8476"
+  appId: "1:641197191429:web:7b63ca534dd41e19d8476c"
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
@@ -126,6 +133,13 @@ function joinGroup(){
   joinFirebaseGroup(groupId);
 }
 
+// ---------- Update Name ----------
+function updateName(){
+  var name = document.getElementById('nameInput').value.trim();
+  if(name===''){ alert("Enter a name"); return; }
+  db.ref('groups/'+currentGroupId+'/players/'+playerId+'/name').set(name);
+}
+
 // ---------- Join Firebase Group ----------
 function joinFirebaseGroup(groupId){
   currentGroupId = groupId;
@@ -134,13 +148,13 @@ function joinFirebaseGroup(groupId){
   document.getElementById('groupIdText').innerText = groupId;
 
   // Add player
-  db.ref('groups/'+groupId+'/players/'+playerId).set(true);
+  db.ref('groups/'+groupId+'/players/'+playerId).set({name:playerId});
 
   // Player list updates
   db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
     var players = snapshot.val()||{};
     var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
-    for(var p in players){ html+="<li>"+p+"</li>"; }
+    for(var p in players){ html+="<li>"+(players[p].name||p)+"</li>"; }
     html+="</ul>";
     document.getElementById('playerList').innerHTML = html;
     if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
@@ -167,6 +181,19 @@ function joinFirebaseGroup(groupId){
 
     // Update current number
     if(data.currentNumber) highlightNumber(data.currentNumber);
+
+    // Show line completion notifications
+    if(data.linesCompleted){
+      var html = "<h3>Completed Lines:</h3><ul>";
+      for(var p in data.linesCompleted){
+        var pname = (data.players && data.players[p] && data.players[p].name) || p;
+        data.linesCompleted[p].forEach(line=>{
+          html+="<li>"+pname+" completed "+line+" Line</li>";
+        });
+      }
+      html+="</ul>";
+      document.getElementById('lineNotifications').innerHTML = html;
+    }
   });
 }
 
@@ -217,7 +244,6 @@ function showNextNumber(){
 
 // ---------- Highlight Number ----------
 function highlightNumber(num){
-  // Keep track of all numbers
   if(drawnNumbers.indexOf(num) === -1){
     drawnNumbers.push(num);
   }
@@ -225,13 +251,34 @@ function highlightNumber(num){
   var table = document.getElementById('myTicketTable');
   if(!table) return;
 
-  // Highlight all drawn numbers on your ticket
   drawnNumbers.forEach(n => {
     var cells = table.querySelectorAll('td[data-number="'+n+'"]');
     cells.forEach(cell => cell.classList.add('marked'));
   });
 
   document.getElementById('currentNumber').innerText = "Number: "+num;
+
+  checkLineCompletion();
+}
+
+// ---------- Check Line Completion ----------
+function checkLineCompletion(){
+  if(!myTicket || !currentGroupId) return;
+
+  var lines = ["Top","Middle","Bottom"];
+  var completed = [];
+
+  for(var r=0;r<3;r++){
+    var lineNumbers = myTicket[r].filter(n => n!==null);
+    var markedNumbers = lineNumbers.filter(n => drawnNumbers.includes(n));
+    if(lineNumbers.length>0 && markedNumbers.length === lineNumbers.length){
+      completed.push(lines[r]);
+    }
+  }
+
+  if(completed.length>0){
+    db.ref('groups/'+currentGroupId+'/linesCompleted/'+playerId).set(completed);
+  }
 }
 
 // ---------- Utilities ----------
