@@ -3,24 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jaldi 5</title>
+<title>Jaldi 5 Multiplayer</title>
 
-<!-- Firebase v8 SDK -->
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <style>
-body {margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;height:100vh;}
-.header {text-align:center;padding:20px;font-size:28px;font-weight:bold;background:#0f3460;}
-.container {display:flex;flex-direction:column;align-items:center;margin-top:40px;}
-.card {width:85%;background:#222831;border-radius:15px;padding:20px;margin:15px;box-shadow:0 10px 20px rgba(0,0,0,0.5);}
-.card h2 {margin-top:0;}
-input {width:90%;padding:12px;margin-top:10px;border-radius:8px;border:none;font-size:16px;}
-button {margin-top:15px;padding:12px 25px;border:none;border-radius:8px;background:#00adb5;color:white;font-size:16px;cursor:pointer;}
-button:hover {background:#028a90;}
-.hidden {display:none;}
-.lobby {text-align:center;padding:30px;}
-.lobby #playerList {margin-top:20px;}
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;height:100vh;}
+.header{text-align:center;padding:20px;font-size:28px;font-weight:bold;background:#0f3460;}
+.container{display:flex;flex-direction:column;align-items:center;margin-top:30px;}
+.card{width:85%;background:#222831;border-radius:15px;padding:20px;margin:15px;box-shadow:0 10px 20px rgba(0,0,0,0.5);}
+.card h2{margin-top:0;}
+input{width:90%;padding:12px;margin-top:10px;border-radius:8px;border:none;font-size:16px;}
+button{margin-top:15px;padding:12px 25px;border:none;border-radius:8px;background:#00adb5;color:white;font-size:16px;cursor:pointer;}
+button:hover{background:#028a90;}
+.hidden{display:none;}
+.lobby{text-align:center;padding:20px;}
+.ticket{display:inline-block;margin:10px;background:#fff;color:#000;border-radius:5px;padding:5px;}
+.ticket table{border-collapse:collapse;}
+.ticket td{width:30px;height:30px;text-align:center;border:1px solid #333;}
+.ticket td.blank{background:#eee;}
+#showNumberBtn{margin-top:20px;background:#f44336;}
 </style>
 </head>
 <body>
@@ -52,12 +56,25 @@ button:hover {background:#028a90;}
 <div class='lobby'>
 <h2>Group ID: <span id='groupIdText'></span></h2>
 <div id='playerList'></div>
-<button onclick='goHome()'>Back to Home</button>
+<div id='startGameDiv' class='hidden'>
+<button id='startGameBtn' onclick='startGame()'>Start Game</button>
+</div>
+</div>
+</div>
+
+<!-- GAME PAGE -->
+<div id='gamePage' class='hidden'>
+<div class='header'>🎯 Jaldi 5</div>
+<div class='lobby'>
+<h3>Group ID: <span id='gameGroupId'></span></h3>
+<div id='ticketsContainer'></div>
+<button id='showNumberBtn' class='hidden' onclick='showNextNumber()'>Show Number</button>
+<div id='currentNumber'></div>
 </div>
 </div>
 
 <script>
-// ---------- Firebase Setup ----------
+// ---------- Firebase ----------
 var firebaseConfig = {
   apiKey: "YOUR_WEB_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -70,57 +87,154 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
-// ---------- Player ID ----------
+// ---------- Player ----------
 var playerId = 'PLR_'+Math.floor(Math.random()*1000000);
-console.log("My Player ID:", playerId);
+console.log("Player ID:",playerId);
+var currentGroupId = '';
+var isCreator = false;
+var gameNumbers = [];
+var currentIndex = 0;
 
 // ---------- Functions ----------
-function createGroup() {
+function createGroup(){
   var groupId = 'GRP-'+Math.floor(100000 + Math.random()*900000);
-  console.log("Creating group:", groupId);
-
+  isCreator = true;
   db.ref('groups/'+groupId).set({
     creator: playerId,
-    players: {}
-  }, function(error) {
-    if(error){
-      alert("Failed to create group!");
-    } else {
-      joinFirebaseGroup(groupId); // go to lobby automatically
-    }
+    players:{}
+  }, function(error){
+    if(!error){ joinFirebaseGroup(groupId); }
   });
 }
 
-function joinGroup() {
+function joinGroup(){
   var groupId = document.getElementById('groupInput').value.trim();
   if(groupId===''){ alert("Enter Group ID"); return; }
+  isCreator = false;
   joinFirebaseGroup(groupId);
 }
 
-function joinFirebaseGroup(groupId) {
-  // Show lobby page
+function joinFirebaseGroup(groupId){
+  currentGroupId = groupId;
   document.getElementById('homePage').classList.add('hidden');
   document.getElementById('lobbyPage').classList.remove('hidden');
   document.getElementById('groupIdText').innerText = groupId;
 
-  // Add player to Firebase
   db.ref('groups/'+groupId+'/players/'+playerId).set(true);
 
-  // Listen for live player list
-  db.ref('groups/'+groupId+'/players').on('value', function(snapshot){
-    var players = snapshot.val();
-    var html = "<h3>Players:</h3><ul>";
-    for(var p in players){ html += "<li>"+p+"</li>"; }
-    html += "</ul>";
+  // Listen to players
+  db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
+    var players = snapshot.val()||{};
+    var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
+    for(var p in players){ html+="<li>"+p+"</li>"; }
+    html+="</ul>";
     document.getElementById('playerList').innerHTML = html;
+
+    // Show start button for creator
+    if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
   });
 }
 
-function goHome() {
+// ---------- Start Game ----------
+function startGame(){
+  // Generate numbers 1-90 shuffled
+  gameNumbers = shuffleArray([...Array(90).keys()].map(x=>x+1));
+  currentIndex = 0;
+
+  // Generate tickets for all players
+  db.ref('groups/'+currentGroupId+'/players').once('value', snapshot=>{
+    var players = snapshot.val();
+    var tickets = {};
+    for(var p in players){
+      tickets[p] = generateTicket();
+    }
+    db.ref('groups/'+currentGroupId+'/tickets').set(tickets, function(){
+      openGamePage();
+    });
+  });
+}
+
+// ---------- Open Game Page ----------
+function openGamePage(){
   document.getElementById('lobbyPage').classList.add('hidden');
-  document.getElementById('homePage').classList.remove('hidden');
+  document.getElementById('gamePage').classList.remove('hidden');
+  document.getElementById('gameGroupId').innerText = currentGroupId;
+
+  if(isCreator){ document.getElementById('showNumberBtn').classList.remove('hidden'); }
+
+  displayTickets();
+
+  // Listen for tickets update
+  db.ref('groups/'+currentGroupId+'/tickets').on('value', snapshot=>{
+    displayTickets(snapshot.val());
+  });
+
+  // Listen for current number
+  db.ref('groups/'+currentGroupId+'/currentNumber').on('value', snapshot=>{
+    var num = snapshot.val();
+    if(num){ document.getElementById('currentNumber').innerText = "Number: "+num; }
+  });
+}
+
+// ---------- Display Tickets ----------
+function displayTickets(ticketsData){
+  if(!ticketsData) return;
+  var html='';
+  for(var pid in ticketsData){
+    html+="<div class='ticket'><b>"+pid+"</b><br>";
+    html+=ticketToHTML(ticketsData[pid]);
+    html+="</div>";
+  }
+  document.getElementById('ticketsContainer').innerHTML = html;
+}
+
+// ---------- Show Next Number ----------
+function showNextNumber(){
+  if(currentIndex>=gameNumbers.length) return alert("All numbers drawn!");
+  var num = gameNumbers[currentIndex++];
+  db.ref('groups/'+currentGroupId+'/currentNumber').set(num);
+}
+
+// ---------- Utility Functions ----------
+function shuffleArray(array){
+  for(let i=array.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [array[i],array[j]]=[array[j],array[i]];
+  }
+  return array;
+}
+
+// Generate a Jaldi 5 Ticket
+function generateTicket(){
+  var ticket = [];
+  for(var r=0;r<3;r++){
+    ticket[r]=Array(9).fill(null);
+  }
+  var numbers = shuffleArray([...Array(90).keys()].map(x=>x+1));
+  var used = 0;
+  for(var r=0;r<3;r++){
+    var cols = shuffleArray([0,1,2,3,4,5,6,7,8]).slice(0,5);
+    for(var c of cols){
+      ticket[r][c]=numbers[used++];
+    }
+  }
+  return ticket;
+}
+
+// Convert ticket array to HTML table
+function ticketToHTML(ticket){
+  var html="<table>";
+  for(var r=0;r<3;r++){
+    html+="<tr>";
+    for(var c=0;c<9;c++){
+      if(ticket[r][c]==null){ html+="<td class='blank'></td>"; }
+      else{ html+="<td>"+ticket[r][c]+"</td>"; }
+    }
+    html+="</tr>";
+  }
+  html+="</table>";
+  return html;
 }
 </script>
-
 </body>
 </html>
