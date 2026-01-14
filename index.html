@@ -76,20 +76,19 @@ button:hover{background:#028a90;}
 <script>
 // ---------- Firebase ----------
 var firebaseConfig = {
-  apiKey: "YOUR_WEB_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCeg-D---KoJEtVcBN5iwFs9WDHBRIgZjA",
+  authDomain: "tffhacksv4.firebaseapp.com",
+  databaseURL: "https://tffhacksv4-default-rtdb.firebaseio.com",
+  projectId: "tffhacksv4",
+  storageBucket: "tffhacksv4.firebasestorage.app",
+  messagingSenderId: "641197191429",
+  appId: "1:641197191429:web:7b63ca534dd41e19d8476c"
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
 // ---------- Player ----------
 var playerId = 'PLR_'+Math.floor(Math.random()*1000000);
-console.log("Player ID:",playerId);
 var currentGroupId = '';
 var isCreator = false;
 var gameNumbers = [];
@@ -124,15 +123,12 @@ function joinGroup(){
 
 // ---------- Join Firebase Group ----------
 function joinFirebaseGroup(groupId){
-  // Show lobby page
   document.getElementById('homePage').classList.add('hidden');
   document.getElementById('lobbyPage').classList.remove('hidden');
   document.getElementById('groupIdText').innerText = groupId;
 
-  // Add player to Firebase
   db.ref('groups/'+groupId+'/players/'+playerId).set(true);
 
-  // Listen for players
   db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
     var players = snapshot.val()||{};
     var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
@@ -140,18 +136,15 @@ function joinFirebaseGroup(groupId){
     html+="</ul>";
     document.getElementById('playerList').innerHTML = html;
 
-    // Show start button only for creator
     if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
   });
 }
 
 // ---------- Start Game ----------
 function startGame(){
-  // Generate numbers 1-90 shuffled
   gameNumbers = shuffleArray([...Array(90).keys()].map(x=>x+1));
   currentIndex = 0;
 
-  // Generate tickets for all players
   db.ref('groups/'+currentGroupId+'/players').once('value', snapshot=>{
     var players = snapshot.val();
     var tickets = {};
@@ -174,12 +167,10 @@ function openGamePage(){
 
   displayTickets();
 
-  // Listen for tickets update
   db.ref('groups/'+currentGroupId+'/tickets').on('value', snapshot=>{
     displayTickets(snapshot.val());
   });
 
-  // Listen for current number
   db.ref('groups/'+currentGroupId+'/currentNumber').on('value', snapshot=>{
     var num = snapshot.val();
     if(num){ document.getElementById('currentNumber').innerText = "Number: "+num; }
@@ -214,7 +205,6 @@ function shuffleArray(array){
   return array;
 }
 
-// Generate a Jaldi 5 Ticket
 function generateTicket(){
   var ticket = [];
   for(var r=0;r<3;r++){
@@ -231,7 +221,6 @@ function generateTicket(){
   return ticket;
 }
 
-// Convert ticket array to HTML table
 function ticketToHTML(ticket){
   var html="<table>";
   for(var r=0;r<3;r++){
