@@ -145,20 +145,27 @@ function joinFirebaseGroup(groupId){
     if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
   });
 
-  // Full group listener (tickets + game start)
+  // Listen group changes
   db.ref('groups/'+groupId).on('value', snapshot=>{
     var data = snapshot.val();
     if(!data) return;
-    if(data.gameStarted && data.tickets){
-      // Store my ticket privately
-      if(data.tickets[playerId]) myTicket = data.tickets[playerId];
-      openGamePage();
+
+    // Store my ticket privately
+    if(data.tickets && data.tickets[playerId]){
+      myTicket = data.tickets[playerId];
+      displayMyTicket();
     }
 
-    // Listen current number updates
-    if(data.currentNumber){
-      highlightNumber(data.currentNumber);
+    // Open game if started
+    if(data.gameStarted){
+      document.getElementById('lobbyPage').classList.add('hidden');
+      document.getElementById('gamePage').classList.remove('hidden');
+      document.getElementById('gameGroupId').innerText = currentGroupId;
+      if(isCreator) document.getElementById('showNumberBtn').classList.remove('hidden');
     }
+
+    // Update current number
+    if(data.currentNumber) highlightNumber(data.currentNumber);
   });
 }
 
@@ -173,7 +180,6 @@ function startGame(){
     for(var p in players){
       tickets[p] = generateTicket();
     }
-    // Save tickets + game started
     db.ref('groups/'+currentGroupId).update({
       tickets: tickets,
       gameStarted: true
@@ -181,20 +187,20 @@ function startGame(){
   });
 }
 
-// ---------- Open Game Page ----------
-function openGamePage(){
-  document.getElementById('lobbyPage').classList.add('hidden');
-  document.getElementById('gamePage').classList.remove('hidden');
-  document.getElementById('gameGroupId').innerText = currentGroupId;
-
-  if(isCreator){ document.getElementById('showNumberBtn').classList.remove('hidden'); }
-
-  displayMyTicket();
-}
-
 // ---------- Display My Ticket ----------
 function displayMyTicket(){
-  var html="<div class='ticket'><b>My Ticket</b><br>"+ticketToHTML(myTicket)+"</div>";
+  if(!myTicket) return;
+  var html="<div class='ticket'><b>My Ticket</b><br><table id='myTicketTable'>";
+  for(var r=0;r<3;r++){
+    html+="<tr>";
+    for(var c=0;c<9;c++){
+      var val = myTicket[r][c];
+      if(val==null){ html+="<td class='blank'></td>"; }
+      else{ html+="<td id='cell-"+r+"-"+c+"' data-number='"+val+"'>"+val+"</td>"; }
+    }
+    html+="</tr>";
+  }
+  html+="</table></div>";
   document.getElementById('myTicketContainer').innerHTML = html;
 }
 
@@ -207,16 +213,10 @@ function showNextNumber(){
 
 // ---------- Highlight Number ----------
 function highlightNumber(num){
-  if(!myTicket) return;
-  var table = document.querySelector('#myTicketContainer table');
+  var table = document.getElementById('myTicketTable');
   if(!table) return;
-  for(var r=0;r<3;r++){
-    for(var c=0;c<9;c++){
-      if(myTicket[r][c]===num){
-        table.rows[r].cells[c].classList.add('marked');
-      }
-    }
-  }
+  var cells = table.querySelectorAll('td[data-number="'+num+'"]');
+  cells.forEach(cell => cell.classList.add('marked'));
   document.getElementById('currentNumber').innerText = "Number: "+num;
 }
 
@@ -243,20 +243,6 @@ function generateTicket(){
     }
   }
   return ticket;
-}
-
-function ticketToHTML(ticket){
-  var html="<table>";
-  for(var r=0;r<3;r++){
-    html+="<tr>";
-    for(var c=0;c<9;c++){
-      if(ticket[r][c]==null){ html+="<td class='blank'></td>"; }
-      else{ html+="<td>"+ticket[r][c]+"</td>"; }
-    }
-    html+="</tr>";
-  }
-  html+="</table>";
-  return html;
 }
 </script>
 </body>
