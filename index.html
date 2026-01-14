@@ -102,7 +102,8 @@ function createGroup(){
 
   db.ref('groups/'+groupId).set({
     creator: playerId,
-    players:{}
+    players:{},
+    gameStarted:false
   }, function(error){
     if(!error){
       joinFirebaseGroup(groupId);
@@ -129,6 +130,7 @@ function joinFirebaseGroup(groupId){
 
   db.ref('groups/'+groupId+'/players/'+playerId).set(true);
 
+  // Listen player list updates
   db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
     var players = snapshot.val()||{};
     var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
@@ -137,6 +139,11 @@ function joinFirebaseGroup(groupId){
     document.getElementById('playerList').innerHTML = html;
 
     if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
+  });
+
+  // Listen if the game started
+  db.ref('groups/'+groupId+'/gameStarted').on('value', snapshot=>{
+    if(snapshot.val()){ openGamePage(); }
   });
 }
 
@@ -151,8 +158,10 @@ function startGame(){
     for(var p in players){
       tickets[p] = generateTicket();
     }
-    db.ref('groups/'+currentGroupId+'/tickets').set(tickets, function(){
-      openGamePage();
+    // Save tickets and mark game started
+    db.ref('groups/'+currentGroupId).update({
+      tickets: tickets,
+      gameStarted: true
     });
   });
 }
