@@ -59,9 +59,11 @@ button:hover{background:#028a90;}
 <div class='lobby'>
 <h2>Group ID: <span id='groupIdText'></span></h2>
 
-<!-- Change Name -->
+<!-- Change Name (Always visible in lobby) -->
+<div id="nameDiv">
 <input id="nameInput" placeholder="Enter your name">
 <button onclick="updateName()">Set Name</button>
+</div>
 
 <div id='playerList'></div>
 <div id='startGameDiv' class='hidden'>
@@ -103,7 +105,7 @@ var isCreator = false;
 var gameNumbers = [];
 var currentIndex = 0;
 var myTicket = [];
-var drawnNumbers = []; // Keep track of all drawn numbers
+var drawnNumbers = [];
 
 // ---------- Create Group ----------
 function createGroup(){
@@ -114,7 +116,8 @@ function createGroup(){
   db.ref('groups/'+groupId).set({
     creator: playerId,
     players:{},
-    gameStarted:false
+    gameStarted:false,
+    linesClaimed:{} // <-- NEW: to track first line completion
   }, function(error){
     if(!error){
       joinFirebaseGroup(groupId);
@@ -147,10 +150,9 @@ function joinFirebaseGroup(groupId){
   document.getElementById('lobbyPage').classList.remove('hidden');
   document.getElementById('groupIdText').innerText = groupId;
 
-  // Add player
   db.ref('groups/'+groupId+'/players/'+playerId).set({name:playerId});
 
-  // Player list updates
+  // Update player list
   db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
     var players = snapshot.val()||{};
     var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
@@ -165,13 +167,11 @@ function joinFirebaseGroup(groupId){
     var data = snapshot.val();
     if(!data) return;
 
-    // Store my ticket privately
     if(data.tickets && data.tickets[playerId]){
       myTicket = data.tickets[playerId];
       displayMyTicket();
     }
 
-    // Open game if started
     if(data.gameStarted){
       document.getElementById('lobbyPage').classList.add('hidden');
       document.getElementById('gamePage').classList.remove('hidden');
@@ -179,17 +179,16 @@ function joinFirebaseGroup(groupId){
       if(isCreator) document.getElementById('showNumberBtn').classList.remove('hidden');
     }
 
-    // Update current number
     if(data.currentNumber) highlightNumber(data.currentNumber);
 
-    // Show line completion notifications
-    if(data.linesCompleted){
-      var html = "<h3>Completed Lines:</h3><ul>";
-      for(var p in data.linesCompleted){
-        var pname = (data.players && data.players[p] && data.players[p].name) || p;
-        data.linesCompleted[p].forEach(line=>{
-          html+="<li>"+pname+" completed "+line+" Line</li>";
-        });
+    // Display line completion notifications for first player only
+    if(data.linesClaimed){
+      var html = "<h3>Line Completed:</h3><ul>";
+      for(var line in data.linesClaimed){
+        if(data.linesClaimed[line]){
+          var pname = (data.players && data.players[data.linesClaimed[line]] && data.players[data.linesClaimed[line]].name) || data.linesClaimed[line];
+          html += "<li>"+pname+" completed "+line+" line</li>";
+        }
       }
       html+="</ul>";
       document.getElementById('lineNotifications').innerHTML = html;
@@ -231,7 +230,6 @@ function displayMyTicket(){
   html+="</table></div>";
   document.getElementById('myTicketContainer').innerHTML = html;
 
-  // Highlight already drawn numbers
   drawnNumbers.forEach(n => highlightNumber(n));
 }
 
@@ -277,7 +275,14 @@ function checkLineCompletion(){
   }
 
   if(completed.length>0){
-    db.ref('groups/'+currentGroupId+'/linesCompleted/'+playerId).set(completed);
+    completed.forEach(line=>{
+      var ref = db.ref('groups/'+currentGroupId+'/linesClaimed/'+line);
+      ref.once('value', snap=>{
+        if(!snap.val()){ // if line not yet claimed
+          ref.set(playerId);
+        }
+      });
+    });
   }
 }
 
