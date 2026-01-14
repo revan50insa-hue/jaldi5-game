@@ -24,7 +24,9 @@ button:hover{background:#028a90;}
 .ticket table{border-collapse:collapse;}
 .ticket td{width:30px;height:30px;text-align:center;border:1px solid #333;}
 .ticket td.blank{background:#eee;}
+.ticket td.marked{background:#00ff00;color:#000;font-weight:bold;}
 #showNumberBtn{margin-top:20px;background:#f44336;}
+#currentNumber{margin-top:20px;font-size:20px;font-weight:bold;}
 </style>
 </head>
 <body>
@@ -67,7 +69,7 @@ button:hover{background:#028a90;}
 <div class='header'>🎯 Jaldi 5</div>
 <div class='lobby'>
 <h3>Group ID: <span id='gameGroupId'></span></h3>
-<div id='ticketsContainer'></div>
+<div id='myTicketContainer'></div>
 <button id='showNumberBtn' class='hidden' onclick='showNextNumber()'>Show Number</button>
 <div id='currentNumber'></div>
 </div>
@@ -93,6 +95,7 @@ var currentGroupId = '';
 var isCreator = false;
 var gameNumbers = [];
 var currentIndex = 0;
+var myTicket = [];
 
 // ---------- Create Group ----------
 function createGroup(){
@@ -124,11 +127,12 @@ function joinGroup(){
 
 // ---------- Join Firebase Group ----------
 function joinFirebaseGroup(groupId){
-  currentGroupId = groupId; // store
+  currentGroupId = groupId;
   document.getElementById('homePage').classList.add('hidden');
   document.getElementById('lobbyPage').classList.remove('hidden');
   document.getElementById('groupIdText').innerText = groupId;
 
+  // Add player
   db.ref('groups/'+groupId+'/players/'+playerId).set(true);
 
   // Player list updates
@@ -145,10 +149,15 @@ function joinFirebaseGroup(groupId){
   db.ref('groups/'+groupId).on('value', snapshot=>{
     var data = snapshot.val();
     if(!data) return;
-
-    // Switch to game page if started
     if(data.gameStarted && data.tickets){
+      // Store my ticket privately
+      if(data.tickets[playerId]) myTicket = data.tickets[playerId];
       openGamePage();
+    }
+
+    // Listen current number updates
+    if(data.currentNumber){
+      highlightNumber(data.currentNumber);
     }
   });
 }
@@ -180,30 +189,13 @@ function openGamePage(){
 
   if(isCreator){ document.getElementById('showNumberBtn').classList.remove('hidden'); }
 
-  displayTickets();
-
-  // Update tickets in real-time
-  db.ref('groups/'+currentGroupId+'/tickets').on('value', snapshot=>{
-    displayTickets(snapshot.val());
-  });
-
-  // Update current number in real-time
-  db.ref('groups/'+currentGroupId+'/currentNumber').on('value', snapshot=>{
-    var num = snapshot.val();
-    if(num){ document.getElementById('currentNumber').innerText = "Number: "+num; }
-  });
+  displayMyTicket();
 }
 
-// ---------- Display Tickets ----------
-function displayTickets(ticketsData){
-  if(!ticketsData) return;
-  var html='';
-  for(var pid in ticketsData){
-    html+="<div class='ticket'><b>"+pid+"</b><br>";
-    html+=ticketToHTML(ticketsData[pid]);
-    html+="</div>";
-  }
-  document.getElementById('ticketsContainer').innerHTML = html;
+// ---------- Display My Ticket ----------
+function displayMyTicket(){
+  var html="<div class='ticket'><b>My Ticket</b><br>"+ticketToHTML(myTicket)+"</div>";
+  document.getElementById('myTicketContainer').innerHTML = html;
 }
 
 // ---------- Show Next Number ----------
@@ -211,6 +203,21 @@ function showNextNumber(){
   if(currentIndex>=gameNumbers.length) return alert("All numbers drawn!");
   var num = gameNumbers[currentIndex++];
   db.ref('groups/'+currentGroupId+'/currentNumber').set(num);
+}
+
+// ---------- Highlight Number ----------
+function highlightNumber(num){
+  if(!myTicket) return;
+  var table = document.querySelector('#myTicketContainer table');
+  if(!table) return;
+  for(var r=0;r<3;r++){
+    for(var c=0;c<9;c++){
+      if(myTicket[r][c]===num){
+        table.rows[r].cells[c].classList.add('marked');
+      }
+    }
+  }
+  document.getElementById('currentNumber').innerText = "Number: "+num;
 }
 
 // ---------- Utilities ----------
