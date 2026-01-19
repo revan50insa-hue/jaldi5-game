@@ -1,334 +1,334 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>Anime Safe Viewer Pro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jaldi 5 Multiplayer</title>
-
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;height:100vh;}
-.header{text-align:center;padding:20px;font-size:28px;font-weight:bold;background:#0f3460;}
-.container{display:flex;flex-direction:column;align-items:center;margin-top:30px;}
-.card{width:85%;background:#222831;border-radius:15px;padding:20px;margin:15px;box-shadow:0 10px 20px rgba(0,0,0,0.5);}
-.card h2{margin-top:0;}
-input{width:90%;padding:12px;margin-top:10px;border-radius:8px;border:none;font-size:16px;}
-button{margin-top:15px;padding:12px 25px;border:none;border-radius:8px;background:#00adb5;color:white;font-size:16px;cursor:pointer;}
-button:hover{background:#028a90;}
-.hidden{display:none;}
-.lobby{text-align:center;padding:20px;}
-.ticket{display:inline-block;margin:10px;background:#fff;color:#000;border-radius:5px;padding:5px;}
-.ticket table{border-collapse:collapse;}
-.ticket td{width:30px;height:30px;text-align:center;border:1px solid #333;}
-.ticket td.blank{background:#eee;}
-.ticket td.marked{background:#00ff00;color:#000;font-weight:bold;}
-#showNumberBtn{margin-top:20px;background:#f44336;}
-#currentNumber{margin-top:20px;font-size:20px;font-weight:bold;}
-#lineNotifications{margin-top:20px;}
+:root{
+  --bg:#0b0620;
+  --panel:#160d2e;
+  --card:#201044;
+  --accent:#00e5ff;
+  --border:#00cfff;
+  --text:#ffffff;
+  --glow:0 0 6px #00e5ff, 0 0 12px #00cfff;
+}
+*{box-sizing:border-box;font-family:system-ui}
+body{
+  margin:0;
+  background:linear-gradient(135deg,#0b0620,#0a0f2b,#001a26);
+  color:var(--text);
+}
+
+/* HEADER */
+header{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  padding:18px;
+}
+
+/* =========================
+   NEW AI STYLE LOGO (LESS GLOW)
+========================= */
+.logo{
+  width:78px;
+  height:78px;
+  border-radius:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:20px;
+  background: linear-gradient(135deg, #0b1220, #0b0620);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  box-shadow: 0 0 6px #00e5ff;
+  position:relative;
+  overflow:hidden;
+}
+
+.logo:after{
+  content:"";
+  position:absolute;
+  width:120%;
+  height:120%;
+  background: linear-gradient(90deg, transparent, rgba(0,255,255,0.55), transparent);
+  transform: rotate(25deg);
+  animation: aiShine 4s infinite;
+}
+
+.logo span{
+  position:relative;
+  z-index:2;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.4);
+}
+
+/* AI Shine Animation */
+@keyframes aiShine{
+  0%{ transform: translateX(-120%) rotate(25deg); }
+  100%{ transform: translateX(120%) rotate(25deg); }
+}
+
+/* TITLE */
+.title{
+  font-size:30px;
+  font-weight:900;
+  color:var(--accent);
+  text-shadow:0 0 12px #00e5ff;
+}
+
+/* TOOLBAR */
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  padding:12px;
+}
+.toolbar input,.toolbar select,.toolbar button{
+  padding:10px 16px;
+  border-radius:22px;
+  border:1px solid var(--border);
+  background:#001a26;
+  color:var(--accent);
+  cursor:pointer;
+  outline:none;
+  transition:.25s;
+}
+.toolbar input:hover, .toolbar select:hover, .toolbar button:hover{
+  box-shadow:var(--glow);
+  transform:translateY(-2px);
+}
+.toolbar button:active{
+  box-shadow:0 0 25px #00e5ff inset;
+  transform:scale(.95);
+}
+
+/* CARDS */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:18px;
+  padding:20px;
+}
+.card{
+  background:var(--card);
+  border-radius:18px;
+  overflow:hidden;
+  cursor:pointer;
+  border:1px solid var(--border);
+  transition:.3s;
+}
+.card:hover{
+  box-shadow:0 0 20px #00e5ff;
+  transform:translateY(-6px);
+}
+.card img{
+  width:100%;
+  height:160px;
+  object-fit:cover;
+  display:block;
+}
+.card h4{
+  margin:10px;
+  text-align:center;
+  color:var(--accent);
+  text-shadow:0 0 8px #00e5ff;
+}
+
+/* VIEWER */
+.viewer{
+  margin:0 20px 20px;
+  height:60vh;
+  background:#000;
+  border-radius:18px;
+  overflow:hidden;
+  position:relative;
+  border:1px solid var(--border);
+  box-shadow:0 0 25px #00e5ff;
+}
+iframe{
+  width:100%;
+  height:100%;
+  border:none;
+}
+
+/* OVERLAY BUTTONS */
+.overlay{
+  position:absolute;
+  right:12px;
+  top:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.overlay button{
+  background:#001a26;
+  color:var(--accent);
+  border:1px solid var(--border);
+  padding:10px;
+  border-radius:14px;
+  font-size:18px;
+  cursor:pointer;
+  transition:.25s;
+}
+.overlay button:hover{
+  box-shadow:var(--glow);
+  transform:translateX(-4px);
+}
+.overlay button:active{
+  box-shadow:0 0 30px #00e5ff inset;
+}
+
+/* HISTORY */
+#history{
+  display:none;
+  max-width:90%;
+  margin:0 auto 20px;
+  background:var(--panel);
+  border-radius:14px;
+  padding:12px;
+  border:1px solid var(--border);
+  box-shadow:0 0 20px #00e5ff;
+}
+.history-item{
+  font-size:14px;
+  border-bottom:1px solid #00cfff55;
+  padding:6px 0;
+}
+
+/* BADGE */
+#adBadge{
+  position:fixed;
+  bottom:10px;
+  right:10px;
+  background:var(--accent);
+  color:#000;
+  padding:6px 14px;
+  border-radius:14px;
+  font-weight:700;
+  box-shadow:0 0 18px #00e5ff;
+}
 </style>
 </head>
 <body>
 
-<!-- HOME PAGE -->
-<div id="homePage">
-<div class='header'>🎯 JALDI 5</div>
-<div class='container'>
+<header>
+  <div class="logo"><span>ASVP</span></div>
+  <div class="title">Anime Safe Viewer Pro V-2.0</div>
+</header>
 
-<div class='card'>
-<h2>Create Group</h2>
-<p>Create a new game and invite friends</p>
-<button onclick='createGroup()'>Create Group</button>
-</div>
+<div class="toolbar">
+  <select onchange="loadSite(this.value)">
+   <option value="">Select Website</option>
+   <option value="https://watchanimeworld.in/">WatchAnimeWorld</option>
+   <option value="https://animesalt.top/">AnimeSalt</option>
+   <option value="https://animelok.to/home">AnimeLok</option>
+   <option value="https://animerulz.com.in">Animerulz</option>
+   <option value="https://aniwave.com.pl/">Aniwave</option>
+  </select>
 
-<div class='card'>
-<h2>Join Group</h2>
-<p>Enter Group ID to join</p>
-<input id='groupInput' placeholder='Enter Group ID'>
-<button onclick='joinGroup()'>Join Group</button>
-</div>
-
-</div>
-</div>
-
-<!-- LOBBY PAGE -->
-<div id='lobbyPage' class='hidden'>
-<div class='header'>🎮 Game Lobby</div>
-<div class='lobby'>
-<h2>Group ID: <span id='groupIdText'></span></h2>
-
-<!-- Change Name -->
-<div id="nameDiv">
-<input id="nameInput" placeholder="Enter your name">
-<button onclick="updateName()">Set Name</button>
+  <input id="customURL" placeholder="Paste allowed URL">
+  <button onclick="loadCustom()">Load</button>
+  <button onclick="toggleHistory()">History</button>
+  <button onclick="clearHistory()">Clear</button>
 </div>
 
-<div id='playerList'></div>
-<div id='startGameDiv' class='hidden'>
-<button id='startGameBtn' onclick='startGame()'>Start Game</button>
-</div>
-</div>
+<div class="cards">
+  <div class="card" onclick="loadSite('https://watchanimeworld.in/')">
+    <img src="https://cdn.myanimelist.net/images/anime/1286/99889.jpg">
+    <h4>WatchAnimeWorld</h4>
+  </div>
+
+  <div class="card" onclick="loadSite('https://animesalt.top/')">
+    <img src="https://cdn.myanimelist.net/images/anime/1565/111305.jpg">
+    <h4>AnimeSalt</h4>
+  </div>
+
+  <div class="card" onclick="loadSite('https://animelok.to/home')">
+    <img src="https://cdn.myanimelist.net/images/anime/10/78745.jpg">
+    <h4>AnimeLok</h4>
+  </div>
+
+  <div class="card" onclick="loadSite('https://animerulz.com.in')">
+    <img src="https://cdn.myanimelist.net/images/anime/1208/94745.jpg">
+    <h4>Animerulz</h4>
+  </div>
+
+  <div class="card" onclick="loadSite('https://aniwave.com.pl/')">
+    <img src="https://cdn.myanimelist.net/images/anime/1171/109222.jpg">
+    <h4>Aniwave</h4>
+  </div>
 </div>
 
-<!-- GAME PAGE -->
-<div id='gamePage' class='hidden'>
-<div class='header'>🎯 Jaldi 5</div>
-<div class='lobby'>
-<h3>Group ID: <span id='gameGroupId'></span></h3>
-<div id='myTicketContainer'></div>
-<button id='showNumberBtn' class='hidden' onclick='showNextNumber()'>Show Number</button>
-<div id='currentNumber'></div>
-<div id="lineNotifications"></div>
+<div class="viewer">
+  <iframe id="frame"
+   sandbox="allow-scripts allow-forms allow-same-origin allow-presentation"
+   allowfullscreen></iframe>
+
+  <div class="overlay">
+   <button onclick="reloadFrame()">⟳</button>
+   <button onclick="fullscreen()">⛶</button>
+   <button onclick="clearFrame()">✖</button>
+  </div>
 </div>
-</div>
+
+<div id="history"></div>
+<div id="adBadge">Ad-Block ON</div>
 
 <script>
-// ---------- Firebase ----------
-var firebaseConfig = {
-  apiKey: "AIzaSyCeg-D---KoJEtVcBN5iwFs9WDHBRIgZjA",
-  authDomain: "tffhacksv4.firebaseapp.com",
-  databaseURL: "https://tffhacksv4-default-rtdb.firebaseio.com",
-  projectId: "tffhacksv4",
-  storageBucket: "tffhacksv4.firebasestorage.app",
-  messagingSenderId: "641197191429",
-  appId: "1:641197191429:web:7b63ca534dd41e19d8476c"
-};
-firebase.initializeApp(firebaseConfig);
-var db = firebase.database();
+const frame=document.getElementById("frame");
+const historyBox=document.getElementById("history");
 
-// ---------- Player ----------
-var playerId = 'PLR_'+Math.floor(Math.random()*1000000);
-var currentGroupId = '';
-var isCreator = false;
-var gameNumbers = [];
-var currentIndex = 0;
-var myTicket = [];
-var drawnNumbers = [];
+function loadSite(url){
+  if(!url) return;
+  frame.src=url;
+  saveHistory(url);
+}
 
-// ---------- Create Group ----------
-function createGroup(){
-  var groupId = 'GRP-'+Math.floor(100000 + Math.random()*900000);
-  isCreator = true;
-  currentGroupId = groupId;
+function loadCustom(){
+  const u=document.getElementById("customURL").value.trim();
+  if(u.startsWith("http")) loadSite(u);
+  else alert("Invalid URL");
+}
 
-  db.ref('groups/'+groupId).set({
-    creator: playerId,
-    players:{},
-    gameStarted:false,
-    linesClaimed:{},
-    winner: null
-  }, function(error){
-    if(!error){
-      joinFirebaseGroup(groupId);
-    } else {
-      alert("Failed to create group!");
-    }
+function reloadFrame(){ 
+  if(frame.src) frame.src=frame.src; 
+}
+
+function clearFrame(){ 
+  frame.src=""; 
+}
+
+function fullscreen(){ 
+  frame.requestFullscreen?.(); 
+}
+
+function saveHistory(url){
+  const h=JSON.parse(localStorage.history||"[]");
+  h.unshift({url,time:new Date().toLocaleString()});
+  localStorage.history=JSON.stringify(h.slice(0,10));
+}
+
+function toggleHistory(){
+  historyBox.innerHTML="";
+  const h=JSON.parse(localStorage.history||"[]");
+  if(!h.length) historyBox.innerHTML="<div class='history-item'>No history</div>";
+  h.forEach(i=>{
+    historyBox.innerHTML+=`<div class="history-item">${i.time}<br>${i.url}</div>`;
   });
+  historyBox.style.display=historyBox.style.display==="block"?"none":"block";
 }
 
-// ---------- Join Group ----------
-function joinGroup(){
-  var groupId = document.getElementById('groupInput').value.trim();
-  if(groupId===''){ alert("Enter Group ID"); return; }
-  isCreator = false;
-  currentGroupId = groupId;
-  joinFirebaseGroup(groupId);
-}
-
-// ---------- Update Name ----------
-function updateName(){
-  var name = document.getElementById('nameInput').value.trim();
-  if(name===''){ alert("Enter a name"); return; }
-  db.ref('groups/'+currentGroupId+'/players/'+playerId+'/name').set(name);
-}
-
-// ---------- Join Firebase Group ----------
-function joinFirebaseGroup(groupId){
-  currentGroupId = groupId;
-  document.getElementById('homePage').classList.add('hidden');
-  document.getElementById('lobbyPage').classList.remove('hidden');
-  document.getElementById('groupIdText').innerText = groupId;
-
-  db.ref('groups/'+groupId+'/players/'+playerId).set({name:playerId});
-
-  // Update player list
-  db.ref('groups/'+groupId+'/players').on('value', snapshot=>{
-    var players = snapshot.val()||{};
-    var html = "<h3>Players ("+Object.keys(players).length+"):</h3><ul>";
-    for(var p in players){ html+="<li>"+(players[p].name||p)+"</li>"; }
-    html+="</ul>";
-    document.getElementById('playerList').innerHTML = html;
-    if(isCreator){ document.getElementById('startGameDiv').classList.remove('hidden'); }
-  });
-
-  // Listen group changes
-  db.ref('groups/'+groupId).on('value', snapshot=>{
-    var data = snapshot.val();
-    if(!data) return;
-
-    if(data.tickets && data.tickets[playerId]){
-      myTicket = data.tickets[playerId];
-      displayMyTicket();
-    }
-
-    if(data.gameStarted){
-      document.getElementById('lobbyPage').classList.add('hidden');
-      document.getElementById('gamePage').classList.remove('hidden');
-      document.getElementById('gameGroupId').innerText = currentGroupId;
-      if(isCreator) document.getElementById('showNumberBtn').classList.remove('hidden');
-    }
-
-    if(data.currentNumber) highlightNumber(data.currentNumber);
-
-    // ---------- SHOW LINE COMPLETION TO ALL ----------
-    if(data.linesClaimed){
-      var html = "<h3>Line Completed:</h3><ul>";
-      for(var line in data.linesClaimed){
-        if(data.linesClaimed[line]){
-          var pid = data.linesClaimed[line];
-          var pname = (data.players && data.players[pid] && data.players[pid].name) || pid;
-          html += "<li>"+pname+" completed "+line+" line</li>";
-        }
-      }
-      html+="</ul>";
-      document.getElementById('lineNotifications').innerHTML = html;
-    }
-
-    // ---------- SHOW WINNER ----------
-    if(data.winner){
-      var winnerName = (data.players && data.players[data.winner] && data.players[data.winner].name) || data.winner;
-      document.getElementById('lineNotifications').innerHTML += "<h2>🏆 "+winnerName+" WINS THE GAME!</h2>";
-      document.getElementById('showNumberBtn').disabled = true;
-    }
-  });
-}
-
-// ---------- Start Game ----------
-function startGame(){
-  gameNumbers = shuffleArray([...Array(90).keys()].map(x=>x+1));
-  currentIndex = 0;
-
-  db.ref('groups/'+currentGroupId+'/players').once('value', snapshot=>{
-    var players = snapshot.val();
-    var tickets = {};
-    for(var p in players){
-      tickets[p] = generateTicket();
-    }
-    db.ref('groups/'+currentGroupId).update({
-      tickets: tickets,
-      gameStarted: true
-    });
-  });
-}
-
-// ---------- Display My Ticket ----------
-function displayMyTicket(){
-  if(!myTicket) return;
-  var html="<div class='ticket'><b>My Ticket</b><br><table id='myTicketTable'>";
-  for(var r=0;r<3;r++){
-    html+="<tr>";
-    for(var c=0;c<9;c++){
-      var val = myTicket[r][c];
-      if(val==null){ html+="<td class='blank'></td>"; }
-      else{ html+="<td id='cell-"+r+"-"+c+"' data-number='"+val+"'>"+val+"</td>"; }
-    }
-    html+="</tr>";
-  }
-  html+="</table></div>";
-  document.getElementById('myTicketContainer').innerHTML = html;
-
-  drawnNumbers.forEach(n => highlightNumber(n));
-}
-
-// ---------- Show Next Number ----------
-function showNextNumber(){
-  if(currentIndex>=gameNumbers.length) return alert("All numbers drawn!");
-  var num = gameNumbers[currentIndex++];
-  db.ref('groups/'+currentGroupId+'/currentNumber').set(num);
-}
-
-// ---------- Highlight Number ----------
-function highlightNumber(num){
-  if(drawnNumbers.indexOf(num) === -1){
-    drawnNumbers.push(num);
-  }
-
-  var table = document.getElementById('myTicketTable');
-  if(!table) return;
-
-  drawnNumbers.forEach(n => {
-    var cells = table.querySelectorAll('td[data-number="'+n+'"]');
-    cells.forEach(cell => cell.classList.add('marked'));
-  });
-
-  document.getElementById('currentNumber').innerText = "Number: "+num;
-
-  checkLineCompletion();
-}
-
-// ---------- Check Line Completion & Winner ----------
-function checkLineCompletion(){
-  if(!myTicket || !currentGroupId) return;
-
-  var lines = ["Top","Middle","Bottom"];
-  var completed = [];
-
-  for(var r=0;r<3;r++){
-    var lineNumbers = myTicket[r].filter(n => n!==null);
-    var markedNumbers = lineNumbers.filter(n => drawnNumbers.includes(n));
-    if(lineNumbers.length>0 && markedNumbers.length === lineNumbers.length){
-      completed.push(lines[r]);
-    }
-  }
-
-  if(completed.length>0){
-    completed.forEach(line=>{
-      var ref = db.ref('groups/'+currentGroupId+'/linesClaimed/'+line);
-      ref.once('value', snap=>{
-        if(!snap.val()){ // if line not yet claimed
-          ref.set(playerId); // triggers notification for all
-        }
-      });
-    });
-  }
-
-  // ---------- CHECK WINNER ----------
-  if(completed.length === 3){ // all 3 lines complete
-    var winnerRef = db.ref('groups/'+currentGroupId+'/winner');
-    winnerRef.once('value', snap=>{
-      if(!snap.val()){ // winner not yet set
-        winnerRef.set(playerId); // first player to complete 3 lines becomes winner
-      }
-    });
-  }
-}
-
-// ---------- Utilities ----------
-function shuffleArray(array){
-  for(let i=array.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [array[i],array[j]]=[array[j],array[i]];
-  }
-  return array;
-}
-
-function generateTicket(){
-  var ticket = [];
-  for(var r=0;r<3;r++){
-    ticket[r]=Array(9).fill(null);
-  }
-  var numbers = shuffleArray([...Array(90).keys()].map(x=>x+1));
-  var used = 0;
-  for(var r=0;r<3;r++){
-    var cols = shuffleArray([0,1,2,3,4,5,6,7,8]).slice(0,5);
-    for(var c of cols){
-      ticket[r][c]=numbers[used++];
-    }
-  }
-  return ticket;
+function clearHistory(){
+  localStorage.history="[]";
+  historyBox.innerHTML="<div class='history-item'>History cleared</div>";
 }
 </script>
+
 </body>
 </html>
